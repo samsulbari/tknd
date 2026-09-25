@@ -57,14 +57,14 @@ class DatabaseSeeder extends Seeder
             'name' => 'Operator Layanan Operasional',
             'email' => 'layanan@sman1.sch.id',
             'password' => Hash::make('password123'),
-            'role' => 'guru',
+            'role' => 'operator_layanan',
         ]);
 
         User::create([
             'name' => 'Pengadministrasi Perkantoran',
             'email' => 'admin@sman1.sch.id',
             'password' => Hash::make('password123'),
-            'role' => 'guru',
+            'role' => 'pengadministrasi_perkantoran',
         ]);
 
         User::create([

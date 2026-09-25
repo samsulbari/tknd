@@ -47,4 +47,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isKonseptorNaskahKeluar(): bool
+    {
+        return in_array($this->role, ['operator_layanan', 'pengadministrasi_perkantoran'], true);
+    }
+
+    public function isPenomoranNaskahKeluar(): bool
+    {
+        return in_array($this->role, ['kepala_tu', 'pengadministrasi_perkantoran'], true);
+    }
 }
