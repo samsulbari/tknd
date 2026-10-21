@@ -71,4 +71,44 @@ class DisposisiController extends Controller
 
         return redirect('/tknd')->with('sukses', 'Official Disposition Form Dispatched Successfully!');
     }
+
+    /**
+     * Menampilkan formulir laporan balik untuk Guru/Waka pelaksana tugas.
+     */
+    public function laporTugas($id)
+    {
+        // 1. Ambil data disposisi beserta naskah masuknya
+        $disposisi = DB::table('disposisi')->where('id', $id)->first();
+        if (!$disposisi) {
+            return redirect('/tknd')->with('error', 'Data disposisi tidak ditemukan.');
+        }
+
+        $naskah = DB::table('naskah_masuk')->where('id', $disposisi->naskah_masuk_id)->first();
+
+        return view('tknd.disposisi.lapor', compact('disposisi', 'naskah'));
+    }
+
+    /**
+     * Memproses penyimpanan laporan balik guru dan memperbarui status alur menjadi selesai.
+     */
+    public function simpanLaporan(Request $request, $id)
+    {
+        // 1. Validasi input laporan balik
+        $request->validate([
+            'laporan_balik_guru' => 'required|string|min:10',
+        ], [
+            'laporan_balik_guru.required' => 'Kolom laporan perkembangan wajib diisi.',
+            'laporan_balik_guru.min' => 'Laporan minimal harus berisi 10 karakter agar informatif.',
+        ]);
+
+        // 2. Update data laporan dan ubah status tugas menjadi selesai
+        DB::table('disposisi')->where('id', $id)->update([
+            'laporan_balik_guru' => $request->laporan_balik_guru,
+            'status_tugas' => 'selesai',
+            'updated_at' => now(),
+        ]);
+
+        return redirect('/tknd/naskah-masuk')->with('success', 'Laporan perkembangan tugas berhasil dikirim ke Pimpinan!');
+    }
+    
 }

@@ -51,46 +51,87 @@
             <a href="{{ route('naskah-masuk.index') }}" class="text-xs font-semibold text-sky-600 hover:text-sky-700 transition-colors">Lihat Semua</a>
         </div>
         
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-sm text-slate-600">
-                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-200">
-                    <tr>
-                        <th class="px-6 py-3">No. Naskah</th>
-                        <th class="px-6 py-3">Perihal</th>
-                        <th class="px-6 py-3">Asal Pengirim</th>
-                        <th class="px-6 py-3">Status Tindakan</th>
-                        <th class="px-6 py-3 text-right">Aksi</th>
+        <!-- TABEL TINDAK LANJUT BERSIH & PRESISI -->
+        <div class="overflow-x-auto border border-slate-100 rounded-lg">
+            <table class="w-full text-left border-collapse table-fixed sm:table-auto">
+                <thead>
+                    <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="px-6 py-3.5 w-32">NO. NASKAH</th>
+                        <th class="px-6 py-3.5 w-64">PERIHAL</th>
+                        <th class="px-6 py-3.5 w-52">ASAL PENGIRIM</th>
+                        <th class="px-6 py-3.5 w-44 text-center">STATUS TINDAKAN</th>
+                        <th class="px-6 py-3.5 w-36 text-right">AKSI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700 text-xs">
                     @if($naskahTerkini->isEmpty())
                         <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-slate-400 bg-slate-50/10 font-medium">
-                                ✨ Luar biasa! Seluruh naskah masuk terkini sudah selesai ditindaklanjuti.
+                            <td colspan="5" class="px-6 py-10 text-center text-slate-400 bg-slate-50/20 font-medium">
+                                📭 Belum ada data tindak lanjut naskah terkini.
                             </td>
                         </tr>
                     @else
-                        @foreach($naskahTerkini as $index => $surat)
+                        @foreach($naskahTerkini as $row)
                             <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-slate-900">{{ $surat->no_surat }}</td>
-                                <td class="px-6 py-4 font-medium text-slate-800">{{ $surat->perihal }}</td>
-                                <td class="px-6 py-4 text-slate-500 font-semibold">{{ $surat->asal_pengirim }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="px-2 py-0.5 rounded-sm font-bold text-[10px] uppercase {{ $surat->status_tindakan == 'Selesai Disposisi' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                                        {{ $surat->status_tindakan }}
+                                
+                                <!-- 1. NO. NASKAH (Menampilkan nomor surat masuk) -->
+                                <td class="px-6 py-4 font-mono text-slate-900 break-words whitespace-normal leading-normal">
+                                    {{ $row->no_surat }}
+                                </td>
+                                
+                                <!-- 2. PERIHAL -->
+                                <td class="px-6 py-4 font-semibold text-slate-800 break-words whitespace-normal leading-normal">
+                                    {{ $row->perihal }}
+                                </td>
+                                
+                                <!-- 3. ASAL PENGIRIM -->
+                                <td class="px-6 py-4 text-sky-600 font-medium break-words whitespace-normal leading-normal">
+                                    🏢 {{ $row->asal_pengirim }}
+                                </td>
+                                
+                                <!-- 4. STATUS TINDAKAN -->
+                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold 
+                                        {{ $row->status_tindakan == 'Selesai Disposisi' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200' }}">
+                                        {{ $row->status_tindakan }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
-                                    <a href="/tknd/naskah-masuk/detail/{{ $surat->id }}" class="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-md hover:bg-sky-100 transition-colors font-bold text-[10px]">
-                                        Buka
-                                    </a>
+                                
+                                <!-- 5. 🔑 KUNCI PERBAIKAN: Tombol Aksi Dinamis Terkunci Aman Hanya di Kolom Paling Kanan -->
+                                <td class="px-6 py-4 text-right whitespace-nowrap font-medium text-xs">
+                                    @if($row->status_tindakan == 'Selesai Disposisi')
+                                        @php
+                                            // Ambil data disposisi untuk mengecek status pengerjaan guru/waka
+                                            $disposisiTerbit = \DB::table('disposisi')->where('naskah_masuk_id', $row->id)->first();
+                                        @endphp
+
+                                        @if($disposisiTerbit)
+                                            @if($disposisiTerbit->status_tugas == 'proses')
+                                                <!-- Tombol Lapor Tugas Aktif -->
+                                                <a href="/tknd/tugas-disposisi/lapor/{{ $disposisiTerbit->id }}" class="inline-block bg-sky-50 text-sky-700 hover:bg-sky-100 font-bold px-3 py-1.5 rounded-lg border border-sky-200 transition-colors cursor-pointer">
+                                                    ✍️ Lapor Tugas
+                                                </a>
+                                            @else
+                                                <!-- Tombol Detail Jika Sudah Dilaporkan (Selesai) -->
+                                                <a href="/tknd/naskah-masuk/detail/{{ $row->id }}" class="text-slate-500 hover:text-slate-700 font-semibold transition-colors">
+                                                    Detail
+                                                </a>
+                                            @endif
+                                        @else
+                                            <!-- Jika data di seeder terputus -->
+                                            <a href="/tknd/naskah-masuk/detail/{{ $row->id }}" class="text-slate-500 hover:text-slate-700 font-semibold transition-colors">Detail</a>
+                                        @endif
+                                    @else
+                                        <span class="text-slate-400 italic">Menunggu Pimpinan</span>
+                                    @endif
                                 </td>
+
                             </tr>
                         @endforeach
                     @endif
                 </tbody>
-
             </table>
         </div>
+
     </div>
 @endsection

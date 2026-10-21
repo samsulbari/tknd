@@ -37,6 +37,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tknd/disposisi/buat/{id}', [DisposisiController::class, 'create'])->name('disposisi.create');
     Route::post('/tknd/disposisi/simpan/{id}', [DisposisiController::class, 'store'])->name('disposisi.store');
 
+    // Rute untuk menampilkan formulir laporan balik dari guru/waka pelaksana
+    Route::get('/tknd/tugas-disposisi/lapor/{id}', [App\Http\Controllers\DisposisiController::class, 'laporTugas'])->name('disposisi.lapor');
+
+    // Rute untuk memproses dan menyimpan laporan balik ke database
+    Route::post('/tknd/tugas-disposisi/simpan-laporan/{id}', [App\Http\Controllers\DisposisiController::class, 'simpanLaporan'])->name('disposisi.simpan-laporan');
+
+
     // 📤 KELOMPOK MODUL NASKAH KELUAR & ALUR VERIFIKASI
     Route::get('/tknd/naskah-keluar', [NaskahKeluarController::class, 'index'])->name('naskah-keluar.index');
     Route::get('/tknd/naskah-keluar/buat', [NaskahKeluarController::class, 'create'])->name('naskah-keluar.create');
