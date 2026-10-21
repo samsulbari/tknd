@@ -34,10 +34,15 @@ class DashboardController extends Controller
             ->leftJoin('disposisi', 'naskah_masuk.id', '=', 'disposisi.naskah_masuk_id')
             ->select(
                 'naskah_masuk.id',
+                'naskah_masuk.nomor_agenda',
                 'naskah_masuk.no_surat',
                 'naskah_masuk.perihal',
                 'naskah_masuk.asal_pengirim',
-                DB::raw('CASE WHEN disposisi.id IS NOT NULL THEN "Selesai Disposisi" ELSE "Menunggu Disposisi" END as status_tindakan')
+                DB::raw("CASE
+                    WHEN disposisi.id IS NULL THEN 'Menunggu Disposisi'
+                    WHEN disposisi.status_tugas = 'selesai' THEN 'Selesai Disposisi'
+                    ELSE 'Dalam Proses'
+                END as status_tindakan")
             )
             ->orderBy('naskah_masuk.created_at', 'desc')
             ->limit(5)

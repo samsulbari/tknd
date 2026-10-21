@@ -28,6 +28,10 @@
         
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
             <div class="break-words whitespace-normal">
+                <label class="block font-bold text-slate-400 uppercase tracking-wide text-[10px] mb-0.5">Nomor Agenda Masuk</label>
+                <p class="font-mono font-bold text-slate-900 text-sm leading-normal">{{ $naskah->nomor_agenda ?? '—' }}</p>
+            </div>
+            <div class="break-words whitespace-normal">
                 <label class="block font-bold text-slate-400 uppercase tracking-wide text-[10px] mb-0.5">Nomor Surat Masuk</label>
                 <p class="font-mono font-bold text-slate-900 text-sm leading-normal">{{ $naskah->no_surat }}</p>
             </div>

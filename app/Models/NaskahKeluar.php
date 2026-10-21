@@ -13,13 +13,15 @@ class NaskahKeluar extends Model
 
     protected $fillable = [
         'tujuan_surat',
-        'perihal',     // PASTIKAN INI ADA
-        'pokok_isi',    // PASTIKAN INI JUGA ADA
+        'perihal',
+        'pokok_isi',
         'kode_klasifikasi',
         'sifat',
         'file_draft_mentah',
+        'file_pdf_final',
         'status_alur',
         'no_surat_resmi',
+        'nomor_agenda',
+        'tgl_kirim',
     ];
-
 }

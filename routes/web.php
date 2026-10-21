@@ -54,11 +54,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tknd/naskah-keluar/detail/{id}', [NaskahKeluarController::class, 'show'])->name('naskah-keluar.show');
     Route::post('/tknd/naskah-keluar/proses-alur/{id}', [NaskahKeluarController::class, 'prosesAlur'])->name('naskah-keluar.proses-alur');
 
-    // 📁 KELOMPOK MODUL PUSAT ARSIP & LAPORAN
-    // Catatan: Ini rute untuk agenda esok hari, sudah kita siapkan jalurnya di sini
-    // Route::get('/tknd/arsip', [ArsipController::class, 'index'])->name('arsip.index');
-    // 📁 KELOMPOK MODUL PUSAT ARSIP & LAPORAN (SEKARANG AKTIF)
-    Route::get('/tknd/arsip', [ArsipController::class, 'index'])->name('arsip.index');
+    
+    // MODUL PUSAT ARSIP
+    Route::get('/tknd/arsip', [ArsipController::class, 'index'])
+        ->name('arsip.index');
+
+    // Buka PDF naskah masuk dari pusat arsip
+    Route::get('/tknd/arsip/naskah-masuk/{id}/pdf', [ArsipController::class, 'pdfNaskahMasuk'])
+        ->whereNumber('id')
+        ->name('arsip.naskah-masuk.pdf');
+
+    // Buka PDF final naskah keluar dari pusat arsip
+    Route::get('/tknd/arsip/naskah-keluar/{id}/pdf', [ArsipController::class, 'pdfNaskahKeluar'])
+        ->whereNumber('id')
+        ->name('arsip.naskah-keluar.pdf');
+
 
 
 });

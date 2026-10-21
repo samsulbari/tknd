@@ -9,6 +9,7 @@
     <!-- Informasi Identitas Naskah Masuk -->
     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-xs text-slate-700 space-y-1.5">
         <h4 class="font-bold text-slate-900 text-sm mb-1">📄 Identitas Data Surat</h4>
+        <p><strong>Nomor Agenda:</strong> {{ $naskah->nomor_agenda ?? '—' }}</p>
         <p><strong>Nomor Surat:</strong> {{ $naskah->no_surat }}</p>
         <p><strong>Asal Pengirim:</strong> {{ $naskah->asal_pengirim }}</p>
         <p><strong>Perihal / Isi Ringkas:</strong> {{ $naskah->perihal }}</p>
@@ -29,6 +30,29 @@
                 <option value="arsipkan">📁 5. Arsipkan Dokumen Resmi</option>
             </select>
         </div>
+
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-600">
+            Klasifikasi Keamanan
+        </label>
+        <select name="klasifikasi_keamanan" required
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-sky-500">
+            <option value="biasa">Biasa</option>
+            <option value="terbatas">Terbatas</option>
+            <option value="rahasia">Rahasia</option>
+        </select>
+    </div>
+
+    <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-600">
+            Batas Waktu Tindak Lanjut
+        </label>
+        <input type="date" name="batas_waktu"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-sky-500">
+    </div>
+</div>
+
 
         <!-- Pilihan Banyak Jabatan / Penerima Tugas Dinas (Grouping Mode) -->
         <div>

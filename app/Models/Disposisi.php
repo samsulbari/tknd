@@ -15,16 +15,17 @@ class Disposisi extends Model
     // Kolom yang diizinkan untuk diisi data secara massal dari form pimpinan
     protected $fillable = [
         'naskah_masuk_id',
-        'diteruskan_kepada',
-        'batas_waktu',
-        'sifat',
-        'catatan_instruksi',
+        'sifat_instruksi',
+        'guru_id_tujuan',
+        'catatan_pimpinan',
+        'laporan_balik_guru',
+        'status_tugas',
     ];
 
     // ATURAN EMAS: Mengonversi data multi-checkbox yang disimpan di database
     // dari bentuk teks JSON mentah otomatis menjadi Array PHP saat dibaca oleh Laravel
     protected $casts = [
-        'diteruskan_kepada' => 'array',
+    'guru_id_tujuan' => 'array',
     ];
 
     /**

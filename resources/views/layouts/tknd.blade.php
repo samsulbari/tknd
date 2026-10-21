@@ -57,7 +57,7 @@
                     @endif
 
                     <!-- PROTEKSI PUSAT ARSIP: Eksklusif Hanya Terbuka untuk Kepala Sekolah & Kepala TU saja -->
-                    @if(in_array(auth()->user()->role, ['kepala_sekolah', 'kepala_tu']))
+                    @if(in_array(auth()->user()->role, ['kepala_sekolah', 'kepala_tu', 'pengadministrasi_perkantoran']))
                         
                         <!-- 5. Menu Arsip & Laporan -->
                         <a href="/tknd/arsip" 

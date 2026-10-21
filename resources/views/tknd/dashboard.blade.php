@@ -4,6 +4,12 @@
 @section('page_title', 'Ringkasan Kerja & Dashboard')
 
 @section('content')
+    @if(session('success') || session('sukses'))
+        <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-semibold text-emerald-800">{{ session('success') ?? session('sukses') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-800">{{ session('error') }}</div>
+    @endif
     <!-- 1. AREA KARTU INDIKATOR STATISTIK DINAMIS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         
@@ -76,7 +82,8 @@
                                 
                                 <!-- 1. NO. NASKAH (Menampilkan nomor surat masuk) -->
                                 <td class="px-6 py-4 font-mono text-slate-900 break-words whitespace-normal leading-normal">
-                                    {{ $row->no_surat }}
+                                    <span class="block font-bold">{{ $row->nomor_agenda ?? '—' }}</span>
+                                    <span class="block text-[11px] text-slate-500 mt-0.5">{{ $row->no_surat }}</span>
                                 </td>
                                 
                                 <!-- 2. PERIHAL -->
@@ -99,17 +106,16 @@
                                 
                                 <!-- 5. 🔑 KUNCI PERBAIKAN: Tombol Aksi Dinamis Terkunci Aman Hanya di Kolom Paling Kanan -->
                                 <td class="px-6 py-4 text-right whitespace-nowrap font-medium text-xs">
-                                    @if($row->status_tindakan == 'Selesai Disposisi')
+                                    @if(in_array($row->status_tindakan, ['Selesai Disposisi', 'Dalam Proses']))
                                         @php
                                             // Ambil data disposisi untuk mengecek status pengerjaan guru/waka
                                             $disposisiTerbit = \DB::table('disposisi')->where('naskah_masuk_id', $row->id)->first();
                                         @endphp
 
                                         @if($disposisiTerbit)
-                                            @if($disposisiTerbit->status_tugas == 'proses')
-                                                <!-- Tombol Lapor Tugas Aktif -->
+                                            @if($disposisiTerbit->status_tugas == 'proses' && \App\Support\NomorAgenda::userDitugaskan($disposisiTerbit, (int) auth()->id()))
                                                 <a href="/tknd/tugas-disposisi/lapor/{{ $disposisiTerbit->id }}" class="inline-block bg-sky-50 text-sky-700 hover:bg-sky-100 font-bold px-3 py-1.5 rounded-lg border border-sky-200 transition-colors cursor-pointer">
-                                                    ✍️ Lapor Tugas
+                                                    Lapor Tugas
                                                 </a>
                                             @else
                                                 <!-- Tombol Detail Jika Sudah Dilaporkan (Selesai) -->

@@ -36,7 +36,7 @@
         <table class="w-full text-left border-collapse table-fixed sm:table-auto">
             <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    <th class="px-4 py-4 w-20 text-center">NOMOR</th>
+                    <th class="px-4 py-4 w-28 text-center">AGENDA</th>
                     <th class="px-4 py-4 w-36 text-center">SIFAT DOKUMEN</th>
                     <th class="px-4 py-4 w-36 text-center">KODE KLASIFIKASI</th> <!-- 🔑 KOLOM BARU TERPISAH -->
                     <th class="px-6 py-4 w-64">PERIHAL</th>
@@ -59,8 +59,8 @@
                         <tr class="hover:bg-slate-50/70 transition-colors">
                             
                             <!-- 1. NOMOR -->
-                            <td class="px-4 py-4 text-center font-medium text-slate-500">
-                                {{ $index + 1 }}
+                            <td class="px-4 py-4 text-center font-mono text-xs font-semibold text-slate-700">
+                                {{ $item->nomor_agenda ?? '—' }}
                             </td>
                             
                             <!-- 2. SIFAT DOKUMEN -->

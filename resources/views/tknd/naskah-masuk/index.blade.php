@@ -7,13 +7,14 @@
 <!-- PEMBUNGKUS UTAMA LIVE SEARCH ALPINE.JS -->
 <div x-data="{ 
     search: '',
-    matchRow(noSurat, pengirim, perihal, klasifikasi) {
+    matchRow(noSurat, pengirim, perihal, klasifikasi, agenda) {
         if (this.search.trim() === '') return true;
         let k = this.search.toLowerCase();
         return noSurat.toLowerCase().includes(k) || 
                pengirim.toLowerCase().includes(k) || 
                perihal.toLowerCase().includes(k) || 
-               klasifikasi.toLowerCase().includes(k);
+               klasifikasi.toLowerCase().includes(k) ||
+               (agenda && agenda.toLowerCase().includes(k));
     }
 }">
 
@@ -44,7 +45,7 @@
     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
         <div class="relative">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">🔍</span>
-            <input type="text" x-model="search" placeholder="Ketik langsung untuk mencari nomor surat, pengirim, perihal, atau kode klasifikasi secara instan..." 
+            <input type="text" x-model="search" placeholder="Cari nomor agenda, nomor surat, pengirim, perihal, atau kode klasifikasi..." 
                    class="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all">
         </div>
     </div>
@@ -56,7 +57,7 @@
                 <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-200">
                     <tr>
                         <th class="px-6 py-3.5">Tgl. Terima</th>
-                        <th class="px-6 py-3.5">Nomor & Kode</th>
+                        <th class="px-6 py-3.5">Agenda & Nomor Surat</th>
                         <th class="px-6 py-3.5">Perihal & Asal Pengirim</th>
                         <th class="px-6 py-3.5">Status Disposisi</th>
                         <th class="px-6 py-3.5 text-center">Berkas</th>
@@ -74,7 +75,7 @@
     @else
         @foreach($naskah as $item)
             <!-- BARIS TR DINAMIS DENGAN LIVE SEARCH & TRANSISI -->
-            <tr x-show="matchRow('{{ $item->no_surat }}', '{{ $item->asal_pengirim }}', '{{ $item->perihal }}', '{{ $item->kode_klasifikasi }}')"
+            <tr x-show="matchRow('{{ $item->no_surat }}', '{{ $item->asal_pengirim }}', '{{ $item->perihal }}', '{{ $item->kode_klasifikasi }}', '{{ $item->nomor_agenda ?? '' }}')"
                 x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0 transform scale-95"
                 class="hover:bg-slate-50/70 transition-colors">
@@ -86,9 +87,10 @@
                 
                 <!-- 2. Nomor Surat & Klasifikasi Permendagri 83/2022 -->
                 <td class="px-6 py-4">
-                    <span class="font-semibold text-slate-900 block font-mono text-xs">{{ $item->no_surat }}</span>
+                    <span class="font-semibold text-slate-900 block font-mono text-xs">{{ $item->nomor_agenda ?? '—' }}</span>
+                    <span class="text-[11px] text-slate-500 font-mono block mt-0.5">{{ $item->no_surat }}</span>
                     <span class="text-[11px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-sm font-medium inline-block mt-1">
-                        📂 Kode: {{ $item->kode_klasifikasi ?? '-' }}
+                        Kode: {{ $item->kode_klasifikasi ?? '-' }}
                     </span>
                 </td>
                 

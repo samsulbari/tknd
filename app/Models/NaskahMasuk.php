@@ -14,6 +14,7 @@ class NaskahMasuk extends Model
 
     // Proteksi kolom yang boleh diisi secara massal oleh form frontend
     protected $fillable = [
+        'nomor_agenda',
         'no_surat',
         'asal_pengirim',
         'tgl_surat',

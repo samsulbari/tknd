@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\NaskahMasuk;
+use App\Support\NomorAgenda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class NaskahMasukController extends Controller
 {
@@ -14,6 +16,7 @@ class NaskahMasukController extends Controller
      */
     public function index(Request $request)
     {
+        $this->pastikanAksesNaskahMasuk();
         // 1. Tangkap kata kunci pencarian dari input text frontend
         $search = $request->input('search');
 
@@ -36,7 +39,8 @@ class NaskahMasukController extends Controller
                 $q->where('naskah_masuk.no_surat', 'LIKE', "%{$search}%")
                   ->orWhere('naskah_masuk.asal_pengirim', 'LIKE', "%{$search}%")
                   ->orWhere('naskah_masuk.perihal', 'LIKE', "%{$search}%")
-                  ->orWhere('naskah_masuk.kode_klasifikasi', 'LIKE', "%{$search}%");
+                  ->orWhere('naskah_masuk.kode_klasifikasi', 'LIKE', "%{$search}%")
+                  ->orWhere('naskah_masuk.nomor_agenda', 'LIKE', "%{$search}%");
             });
         }
 
@@ -52,6 +56,7 @@ class NaskahMasukController extends Controller
      */
     public function show($id)
     {
+        $this->pastikanAksesNaskahMasuk();
         // 1. Ambil data spesifik naskah masuk menggunakan Query Builder DB
         $naskah = DB::table('naskah_masuk')->where('id', $id)->first();
         
@@ -75,6 +80,7 @@ class NaskahMasukController extends Controller
      */
     public function create()
     {
+        $this->pastikanAksesNaskahMasuk();
         return view('tknd.naskah-masuk.create');
     }
 
@@ -83,6 +89,7 @@ class NaskahMasukController extends Controller
      */
     public function store(Request $request)
     {
+        $this->pastikanAksesNaskahMasuk();
         // 1. Validasi Ketat Sisi Server (Server-Side Validation)
         $request->validate([
             'no_surat' => 'required|unique:naskah_masuk,no_surat',
@@ -99,46 +106,98 @@ class NaskahMasukController extends Controller
             $file = $request->file('file_pdf');
             
             // Membuat penamaan file yang unik berbasis waktu Unix agar tidak tumpang tindih di server hosting
-            $fileName = 'naskah_masuk_' . time() . '.' . $file->getClientOriginalExtension();
+            $fileName = 'naskah_masuk_'
+                . \Illuminate\Support\Str::uuid()
+                . '.pdf';
             
             // Memaksa file fisik berpindah langsung ke folder tujuan absolut ekosistem internal
-            $file->move(storage_path('app/public/naskah_masuk'), $fileName);
+            //$file->move(storage_path('app/public/naskah_masuk'), $fileName);
+            $folderPrivat = storage_path('app/private/naskah_masuk');
+
+            if (!is_dir($folderPrivat)) {
+                mkdir($folderPrivat, 0750, true);
+            }
+
+            $file->move($folderPrivat, $fileName);
         }
 
-        // 3. Masukkan Data Metadata ke Database MySQL SMAN 1 Smart
-        NaskahMasuk::create([
-            'no_surat' => $request->no_surat,
-            'asal_pengirim' => $request->asal_pengirim,
-            'tgl_surat' => $request->tgl_surat,
-            'tgl_terima' => date('Y-m-d'), // Otomatis mencatat tanggal hari ini secara real-time
-            'perihal' => $request->perihal,
-            'kode_klasifikasi' => $request->kode_klasifikasi,
-            'file_pdf' => $fileName,
-            'status_disposisi' => 'menunggu', // Default status awal sebelum diproses pimpinan
-        ]);
+        DB::transaction(function () use ($request, $fileName) {
+            NaskahMasuk::create([
+                'nomor_agenda' => NomorAgenda::berikutnya('naskah_masuk', 'M'),
+                'no_surat' => $request->no_surat,
+                'asal_pengirim' => $request->asal_pengirim,
+                'tgl_surat' => $request->tgl_surat,
+                'tgl_terima' => date('Y-m-d'),
+                'perihal' => $request->perihal,
+                'kode_klasifikasi' => $request->kode_klasifikasi,
+                'file_pdf' => $fileName,
+                'status_disposisi' => 'menunggu',
+            ]);
+        });
 
-        // 4. Kembali ke halaman tabel utama dengan melempar flash message sukses
-        return redirect()->route('naskah-masuk.index')->with('success', 'Naskah masuk berhasil didaftarkan secara aman!');
+        return redirect()->route('naskah-masuk.index')->with('success', 'Naskah masuk berhasil didaftarkan. Nomor agenda tercatat otomatis.');
     }
 
     /**
      * Membuka Berkas PDF Secara Langsung dari Folder Internal Proyek 
      * Solusi Bypass Eror 403/404 Windows & Desain Siap Diupload ke Hosting
      */
+
     public function viewPdf($filename)
     {
-        // Mengunci lokasi pencarian file pada folder fisik storage internal proyek
-        $path = storage_path('app/public/naskah_masuk/' . $filename);
-
-        // Proteksi jika data di database ada namun file fisiknya terhapus/hilang di server
-        if (!file_exists($path)) {
-            abort(404, 'Berkas fisik PDF surat tidak ditemukan di dalam folder server SMAN 1 Smart.');
+        $user = Auth::user();
+    
+        if (!$user || !in_array($user->role, [
+            'kepala_sekolah',
+            'kepala_tu',
+            'pengadministrasi_perkantoran',
+        ], true)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk membuka PDF naskah masuk.');
         }
-
-        // Membaca isi berkas dan merendernya secara aman langsung sebagai dokumen PDF asli di browser
+    
+        // Hanya izinkan nama berkas sederhana, bukan path atau traversal.
+        if (
+            !is_string($filename) ||
+            basename($filename) !== $filename ||
+            !preg_match('/\A[a-zA-Z0-9._-]+\.pdf\z/i', $filename)
+        ) {
+            abort(404);
+        }
+    
+        // Pastikan berkas memang tercatat pada data naskah masuk.
+        $terdaftar = DB::table('naskah_masuk')
+            ->where('file_pdf', $filename)
+            ->exists();
+    
+        abort_unless($terdaftar, 404, 'Berkas tidak terdaftar.');
+    
+        // Baca dari lokasi privat, bukan storage/app/public.
+        $path = storage_path('app/private/naskah_masuk/' . $filename);
+    
+        abort_unless(is_file($path), 404, 'Berkas PDF tidak ditemukan.');
+    
         return response()->file($path, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"'
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
+
+    
+    private function pastikanAksesNaskahMasuk(): void
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            $user && in_array($user->role, [
+                'kepala_sekolah',
+                'kepala_tu',
+                'pengadministrasi_perkantoran',
+            ], true),
+            403,
+            'Anda tidak memiliki hak akses untuk mengelola naskah masuk.'
+        );
+    }
+
+    
 }

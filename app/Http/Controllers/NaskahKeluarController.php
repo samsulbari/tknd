@@ -4,13 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\NaskahKeluar;
 use App\Models\User;
+use App\Support\NomorAgenda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class NaskahKeluarController extends Controller
 {
     public function index()
     {
+        $user = $this->user();
+
+        if (
+            !$user ||
+            !in_array($user->role, [
+                'kepala_sekolah',
+                'kepala_tu',
+                'pengadministrasi_perkantoran',
+                'operator_layanan',
+            ], true)
+        ) {
+            abort(403, 'Anda tidak memiliki hak akses ke daftar naskah keluar.');
+        }
+
         $naskahKeluar = NaskahKeluar::orderBy('created_at', 'desc')->get();
 
         return view('tknd.naskah-keluar.index', compact('naskahKeluar'));
@@ -44,8 +60,12 @@ class NaskahKeluarController extends Controller
         $fileName = null;
         if ($request->hasFile('file_draft_mentah')) {
             $file = $request->file('file_draft_mentah');
-            $fileName = 'draf_keluar_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(storage_path('app/public/naskah_keluar'), $fileName);
+            $fileName = 'draf_keluar_'
+    . \Illuminate\Support\Str::uuid()
+    . '.'
+    . strtolower($file->getClientOriginalExtension());
+
+$file->move($this->folderPrivatNaskahKeluar(), $fileName);
         }
 
         NaskahKeluar::create([
@@ -99,13 +119,23 @@ class NaskahKeluarController extends Controller
 
         $fileName = $naskah->file_draft_mentah;
         if ($request->hasFile('file_draft_mentah')) {
-            if ($naskah->file_draft_mentah && file_exists(storage_path('app/public/naskah_keluar/' . $naskah->file_draft_mentah))) {
-                unlink(storage_path('app/public/naskah_keluar/' . $naskah->file_draft_mentah));
-            }
+            $namaLama = $naskah->file_draft_mentah;
+
+if (
+    $namaLama &&
+    basename($namaLama) === $namaLama &&
+    is_file($this->folderPrivatNaskahKeluar() . DIRECTORY_SEPARATOR . $namaLama)
+) {
+    unlink($this->folderPrivatNaskahKeluar() . DIRECTORY_SEPARATOR . $namaLama);
+}
 
             $file = $request->file('file_draft_mentah');
-            $fileName = 'draf_keluar_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(storage_path('app/public/naskah_keluar'), $fileName);
+            $fileName = 'draf_keluar_'
+    . \Illuminate\Support\Str::uuid()
+    . '.'
+    . strtolower($file->getClientOriginalExtension());
+
+$file->move($this->folderPrivatNaskahKeluar(), $fileName);
         }
 
         $naskah->update([
@@ -122,18 +152,61 @@ class NaskahKeluarController extends Controller
 
     public function downloadDraft($filename)
     {
-        $filename = basename($filename);
-        $path = storage_path('app/public/naskah_keluar/' . $filename);
+        $user = $this->user();
 
-        if (! file_exists($path)) {
-            abort(404, 'Berkas fisik draf dokumen tidak ditemukan.');
+        if (
+            !$user ||
+            !in_array($user->role, [
+                'kepala_sekolah',
+                'kepala_tu',
+                'pengadministrasi_perkantoran',
+                'operator_layanan',
+            ], true)
+        ) {
+            abort(403, 'Anda tidak memiliki hak akses untuk membuka draf naskah keluar.');
         }
 
-        return response()->download($path);
+        if (
+            !is_string($filename) ||
+            basename($filename) !== $filename ||
+            !preg_match('/\A[a-zA-Z0-9._-]+\.(pdf|doc|docx)\z/i', $filename)
+        ) {
+            abort(404);
+        }
+
+        $terdaftar = NaskahKeluar::where('file_draft_mentah', $filename)
+            ->exists();
+
+        abort_unless($terdaftar, 404, 'Berkas draf tidak terdaftar.');
+
+        $path = $this->folderPrivatNaskahKeluar()
+            . DIRECTORY_SEPARATOR
+            . $filename;
+
+        abort_unless(is_file($path), 404, 'Berkas draf tidak ditemukan.');
+
+        return response()->download($path, $filename, [
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function show($id)
     {
+        $user = $this->user();
+
+        if (
+            !$user ||
+            !in_array($user->role, [
+                'kepala_sekolah',
+                'kepala_tu',
+                'pengadministrasi_perkantoran',
+                'operator_layanan',
+            ], true)
+        ) {
+            abort(403, 'Anda tidak memiliki hak akses ke detail naskah keluar.');
+        }
+
         $naskah = NaskahKeluar::findOrFail($id);
 
         return view('tknd.naskah-keluar.detail', compact('naskah'));
@@ -181,25 +254,50 @@ class NaskahKeluarController extends Controller
                 return $this->alurDitolak();
             }
 
-            $fileNameFinal = $naskah->file_draft_mentah;
-            if ($request->hasFile('file_pdf_final')) {
-                $file = $request->file('file_pdf_final');
-                $fileNameFinal = 'final_keluar_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(storage_path('app/public/naskah_keluar'), $fileNameFinal);
-            }
+            
+            $file = $request->file('file_pdf_final');
 
-            $naskah->update([
-                'no_surat_resmi' => $request->no_surat_resmi,
-                'file_draft_mentah' => $fileNameFinal,
-                'status_alur' => 'selesai',
-            ]);
-            $pesan = 'Nomor surat resmi tercatat dan naskah keluar diarsip.';
+            $fileNameFinal = 'final_keluar_'
+                . \Illuminate\Support\Str::uuid()
+                . '.pdf';
+
+            $file->move(
+    $this->folderPrivatNaskahKeluar(),
+    $fileNameFinal
+);
+
+            DB::transaction(function () use ($naskah, $request, $fileNameFinal) {
+                $agenda = $naskah->nomor_agenda
+                    ?: NomorAgenda::berikutnya('naskah_keluar', 'K');
+
+                $naskah->update([
+                    'no_surat_resmi' => $request->no_surat_resmi,
+                    'file_pdf_final' => $fileNameFinal,
+                    'nomor_agenda' => $agenda,
+                    'tgl_kirim' => now()->toDateString(),
+                    'status_alur' => 'selesai',
+                ]);
+            });
+
+            $pesan = 'Nomor agenda dan nomor surat resmi tercatat. Naskah keluar diarsip.';
+
         } else {
             return $this->alurDitolak();
         }
 
         return redirect()->route('naskah-keluar.show', $naskah->id)->with('success', $pesan);
     }
+
+private function folderPrivatNaskahKeluar(): string
+{
+    $folder = storage_path('app/private/naskah_keluar');
+
+    if (!is_dir($folder)) {
+        mkdir($folder, 0750, true);
+    }
+
+    return $folder;
+}
 
     private function user(): ?User
     {

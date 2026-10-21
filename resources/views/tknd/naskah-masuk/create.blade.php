@@ -81,6 +81,7 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Diterima Sistem <span class="text-red-500">*</span></label>
                             <input type="date" value="{{ date('Y-m-d') }}" readonly
                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-500 outline-none cursor-not-allowed">
+                            <p class="text-[11px] text-slate-400 mt-1">Nomor agenda (contoh M.{{ date('Y') }}.0001) diisi otomatis saat naskah disimpan.</p>
                         </div>
                         
                         <!-- Dropdown Pencarian Klasifikasi Cerdas Alpine.js -->
